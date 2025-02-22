@@ -1,5 +1,5 @@
 import argparse
-from train_model import train_model  # Assure-toi que cette fonction est bien définie
+from model_pipeline import train_model  # Assure-toi que cette fonction est bien définie
 
 def main(train_path, test_path, model_path):
     # Entraîner le modèle et récupérer les performances

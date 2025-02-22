@@ -80,16 +80,25 @@ def optimizer_hyperparameters(X: pd.DataFrame,
         n_jobs=-1
     )
     grid_search.fit(X, y)
-    return grid_search.best_params_
+    
+    best_params = grid_search.best_params_
+    print("Meilleurs hyperparamètres trouvés :", best_params)  # DEBUG
+    
+    if not isinstance(best_params, dict):
+        raise ValueError("optimizer_hyperparameters doit retourner un dictionnaire.")
+    
+    return best_params
 
 def train_model(X: pd.DataFrame,
                y: pd.Series,
                hyperparameters: Dict[str, Any] = None) -> BaseEstimator:
-    if not isinstance(hyperparameters, dict):
+    if hyperparameters is None:
+        hyperparameters = {}
+    elif not isinstance(hyperparameters, dict):
         raise ValueError("Les hyperparamètres doivent être un dictionnaire.")
-    
+
     model = RandomForestClassifier(
-        **(hyperparameters or {}),
+        **hyperparameters,
         random_state=42,
         class_weight='balanced'
     )

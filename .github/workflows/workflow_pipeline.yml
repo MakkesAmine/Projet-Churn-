@@ -44,7 +44,7 @@ jobs:
       - name: Run ML pipeline
         run: |
           source venv/bin/activate
-          python main.py --train_path data/churn-bigml-80.csv --test_path data/churn-bigml-20.csv --model_path models/churn_model.pkl
+          python src/main.py --train_path data/churn-bigml-80.csv --test_path data/churn-bigml-20.csv --model_path models/churn_model.pkl
 
   clean:
     runs-on: ubuntu-latest

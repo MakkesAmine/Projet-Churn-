@@ -85,6 +85,9 @@ def optimizer_hyperparameters(X: pd.DataFrame,
 def train_model(X: pd.DataFrame,
                y: pd.Series,
                hyperparameters: Dict[str, Any] = None) -> BaseEstimator:
+    if not isinstance(hyperparameters, dict):
+        raise ValueError("Les hyperparamètres doivent être un dictionnaire.")
+    
     model = RandomForestClassifier(
         **(hyperparameters or {}),
         random_state=42,

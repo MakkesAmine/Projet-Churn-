@@ -1,7 +1,7 @@
 import argparse
 from pathlib import Path
 import mlflow
-from src.model_pipeline import (
+from model_pipeline import (
     preprocess_data,
     optimizer_hyperparameters,
     train_model,

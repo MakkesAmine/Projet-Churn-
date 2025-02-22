@@ -1,0 +1,138 @@
+name: MLOps Pipeline
+
+# Déclencher le workflow à chaque push sur la branche main
+on:
+  push:
+    branches:
+      - main
+
+# Définir les jobs
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install -r requirements.txt
+
+  data_preparation:
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install -r requirements.txt
+
+      - name: Prepare data
+        run: |
+          source venv/bin/activate
+          python src/model_pipeline.py prepare_data \
+              --train_path data/churn-bigml-80.csv \
+              --test_path data/churn-bigml-20.csv \
+              --outlier_threshold 3.0
+
+  train_model:
+    runs-on: ubuntu-latest
+    needs: data_preparation
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install -r requirements.txt
+
+      - name: Train model
+        run: |
+          source venv/bin/activate
+          python src/model_pipeline.py train_model \
+              --train_path data/processed/train.csv \
+              --model_dir models/ \
+              --random_state 42
+
+  run_tests:
+    runs-on: ubuntu-latest
+    needs: train_model
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install -r requirements.txt
+
+      - name: Run tests
+        run: |
+          source venv/bin/activate
+          pytest tests/
+
+  deploy_model:
+    runs-on: ubuntu-latest
+    needs: run_tests
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install -r requirements.txt
+
+      - name: Deploy model
+        run: |
+          source venv/bin/activate
+          python src/model_pipeline.py deploy_model \
+              --model_path models/best_model.joblib \
+              --deploy_dir /var/www/ml_models
+
+  clean:
+    runs-on: ubuntu-latest
+    needs: deploy_model
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Clean temporary files
+        run: |
+          rm -rf data/processed/*
+          rm -rf models/*

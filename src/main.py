@@ -1,60 +1,45 @@
-name: MLOps Pipeline
+import argparse
+from pathlib import Path
+import mlflow
+from src.model_pipeline import (
+    preprocess_data,
+    optimizer_hyperparameters,
+    train_model,
+    evaluate_model,
+    save_model
+)
 
-on:
-  push:
-    branches:
-      - main
+def main(train_path, test_path, model_path):
+    mlflow.set_experiment("Churn Prediction")
 
-jobs:
-  setup:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+    # Prétraitement des données
+    X_train, X_test, y_train, y_test = preprocess_data(train_path, test_path)
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.9'
+    # Optimisation des hyperparamètres
+    param_grid = {
+        "n_estimators": [50, 100, 200],
+        "max_depth": [10, 20, None],
+        "min_samples_split": [2, 5, 10]
+    }
+    best_params = optimizer_hyperparameters(X_train, y_train, param_grid)
 
-      - name: Install dependencies
-        run: |
-          python -m venv venv
-          source venv/bin/activate
-          pip install -r requirements.txt
+    # Entraînement du modèle
+    model = train_model(X_train, y_train, best_params)
 
-  run_pipeline:
-    runs-on: ubuntu-latest
-    needs: setup
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+    # Évaluation du modèle
+    metrics = evaluate_model(model, X_test, y_test)
+    print("Performance du modèle :", metrics)
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.9'
+    # Sauvegarde du modèle
+    save_model(model, model_path)
 
-      - name: Install dependencies
-        run: |
-          python -m venv venv
-          source venv/bin/activate
-          pip install -r requirements.txt
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Exécute le pipeline de prédiction du churn.")
+    parser.add_argument("--train_path", type=str, required=True, help="Chemin du fichier d'entraînement")
+    parser.add_argument("--test_path", type=str, required=True, help="Chemin du fichier de test")
+    parser.add_argument("--model_path", type=str, required=True, help="Chemin où enregistrer le modèle")
 
-      - name: Run ML pipeline
-        run: |
-          source venv/bin/activate
-          python main.py --train_path data/churn-bigml-80.csv --test_path data/churn-bigml-20.csv --model_path models/churn_model.pkl
-
-  clean:
-    runs-on: ubuntu-latest
-    needs: run_pipeline
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Clean temporary files
-        run: |
-          rm -rf data/processed/*
-          rm -rf models/*
+    args = parser.parse_args()
+    
+    main(args.train_path, args.test_path, args.model_path)
 
